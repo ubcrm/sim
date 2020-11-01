@@ -13,18 +13,16 @@ class BlenderEnv():
     def __init__(self):
         self.clear_env()
         
-        # Make field collection
+        # Make collections
         self.field_collection = bpy.data.collections.new('field')
-
-        # Make lights collection
         self.lights_collection = bpy.data.collections.new('lights')
-
-        # Link lights collection to scene
+        
+        # Add collections to scene
+        bpy.context.scene.collection.children.link(self.field_collection)
         bpy.context.scene.collection.children.link(self.lights_collection)
 
         # Setup environment
         self.make_base()
-
         self.make_lights('POINT', 10, 75, 60)
         # self.make_lights('SPOT', 10, 150, 60)
 
@@ -41,8 +39,6 @@ class BlenderEnv():
         base_mesh.uv_layers.new(name='base_uv')
         # make object from mesh
         base_obj = bpy.data.objects.new('base_obj', base_mesh)
-        # add to collection
-        bpy.context.scene.collection.children.link(self.field_collection)
         # add object to scene collection
         self.field_collection.objects.link(base_obj)
 
