@@ -1,5 +1,7 @@
 import bpy
 import os
+import numpy as np
+from random import random
 
 FIELD_X = 8.08 #length  
 FIELD_Y = 4.48 #width
@@ -11,11 +13,20 @@ class BlenderEnv():
     def __init__(self):
         self.clear_env()
         
-        #make field collection
+        # Make field collection
         self.field_collection = bpy.data.collections.new('field')
 
-        #setup environment
+        # Make lights collection
+        self.lights_collection = bpy.data.collections.new('lights')
+
+        # Link lights collection to scene
+        bpy.context.scene.collection.children.link(self.lights_collection)
+
+        # Setup environment
         self.make_base()
+
+        self.make_lights('POINT', 10, 75, 60)
+        # self.make_lights('SPOT', 10, 150, 60)
 
     def make_base(self):
         '''base of field'''
@@ -46,6 +57,31 @@ class BlenderEnv():
         # ob = bpy.data.objects['new_object']
         base_obj.data.materials.append(base_mat)
 
+    def make_lights(self, type_of_light, number_of_lights, base_power, power_variance):
+        '''Generate randomly placed lights around the base'''
+
+        # Create light datablock, set attributes
+        light_data = bpy.data.lights.new(name="light", type=type_of_light)
+
+        # Get size of field to generate range of positions
+        base_loc = np.array(self.field_collection.objects['base_obj'].location)
+        base_dim = np.array(self.field_collection.objects['base_obj'].dimensions)
+
+        for _ in range(number_of_lights):
+            # Calculate random power value
+            light_data.energy = random() * power_variance + base_power
+
+            # Make new light object
+            light_object = bpy.data.objects.new(name="light", object_data=light_data)
+
+            # Set random location near arena
+            xy_coord = np.random.randint(-base_dim[0]/2,base_dim[0]/2,size=2)
+            z_coord = np.random.randint(3,6,size=1)
+            light_object.location = tuple(base_loc + base_dim/2 + np.concatenate((xy_coord,z_coord)))
+
+            #add to collections
+            self.lights_collection.objects.link(light_object)
+
     def clear_env(self):
         '''Function to clean environment'''
         data_blocks= [
@@ -68,6 +104,6 @@ class BlenderEnv():
             for block in block_list:
                 block_list.remove(block)
 
-blender_env = BlenderEnv()
+# blender_env = BlenderEnv()
 if __name__ == '__main__':
     blender_env = BlenderEnv()
