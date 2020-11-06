@@ -23,8 +23,10 @@ class BlenderEnv():
 
         # Setup environment
         self.make_base()
-        self.make_lights('POINT', 10, 75, 60)
-        # self.make_lights('SPOT', 10, 150, 60)
+        # self.make_lights('POINT', 10, 75, 60)
+        # self.make_lights('POINT', 10, 75, 60, light_color=(1,1,1))
+        self.make_lights('SPOT', 10, 150, 60)
+        # self.make_lights('SPOT', 10, 150, 60, light_color=(1,1,1))
 
     def make_base(self):
         '''base of field'''
@@ -53,7 +55,8 @@ class BlenderEnv():
         # ob = bpy.data.objects['new_object']
         base_obj.data.materials.append(base_mat)
 
-    def make_lights(self, type_of_light, number_of_lights, base_power, power_variance, color_min=0, color_max=1):
+    def make_lights(self, type_of_light, number_of_lights, base_power, power_variance,
+            light_color='random',color_min=0, color_max=1):
         '''Generate randomly placed lights around the base'''
 
         # Get size of field to generate range of positions
@@ -64,21 +67,28 @@ class BlenderEnv():
             # Create light datablock, set attributes
             light_data = bpy.data.lights.new(name="light", type=type_of_light)
             
+            # Set spot light properties
+            if type_of_light=='SPOT':
+                light_data.spot_blend = 0.1
+                light_data.spot_size  = 1.5
+
             # Calculate random power value
             light_data.energy = random() * power_variance + base_power
-            # Generate random color
-            light_data.color = tuple(np.random.uniform(color_min, color_max,3))
-            # Set blend value for spot lights
-            # if type_of_light == "SPOT":
-                # light_data.blend = 
+            
+            # Choose light color
+            if light_color == 'random':
+                light_data.color = tuple(np.random.uniform(color_min, color_max,3))
+            else:
+                light_data.color = light_color
             
             # Make new light object
             light_object = bpy.data.objects.new(name="light", object_data=light_data)
 
             # Set random location near arena
-            xy_coord = np.random.randint(-base_dim[0]/2,base_dim[0]/2,size=2)
+            x_coord = np.random.randint(-base_dim[0]/1.5,base_dim[0]/1.5)
+            y_coord = np.random.randint(-base_dim[1]/1.5,base_dim[1]/1.5)
             z_coord = np.random.randint(3,6,size=1)
-            light_object.location = tuple(base_loc + base_dim/2 + np.concatenate((xy_coord,z_coord)))
+            light_object.location = tuple(base_loc + base_dim/2 + (x_coord,y_coord,z_coord))
 
             #add to collections
             self.lights_collection.objects.link(light_object)
