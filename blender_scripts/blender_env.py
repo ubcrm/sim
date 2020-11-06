@@ -53,20 +53,25 @@ class BlenderEnv():
         # ob = bpy.data.objects['new_object']
         base_obj.data.materials.append(base_mat)
 
-    def make_lights(self, type_of_light, number_of_lights, base_power, power_variance):
+    def make_lights(self, type_of_light, number_of_lights, base_power, power_variance, color_min=0, color_max=1):
         '''Generate randomly placed lights around the base'''
-
-        # Create light datablock, set attributes
-        light_data = bpy.data.lights.new(name="light", type=type_of_light)
 
         # Get size of field to generate range of positions
         base_loc = np.array(self.field_collection.objects['base_obj'].location)
         base_dim = np.array(self.field_collection.objects['base_obj'].dimensions)
 
         for _ in range(number_of_lights):
+            # Create light datablock, set attributes
+            light_data = bpy.data.lights.new(name="light", type=type_of_light)
+            
             # Calculate random power value
             light_data.energy = random() * power_variance + base_power
-
+            # Generate random color
+            light_data.color = tuple(np.random.uniform(color_min, color_max,3))
+            # Set blend value for spot lights
+            # if type_of_light == "SPOT":
+                # light_data.blend = 
+            
             # Make new light object
             light_object = bpy.data.objects.new(name="light", object_data=light_data)
 
