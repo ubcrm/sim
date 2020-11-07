@@ -1,5 +1,7 @@
 import bpy
 import os
+import numpy as np
+from random import random
 
 FIELD_X = 8.08 #length  
 FIELD_Y = 4.48 #width
@@ -11,11 +13,20 @@ class BlenderEnv():
     def __init__(self):
         self.clear_env()
         
-        #make field collection
+        # Make collections
         self.field_collection = bpy.data.collections.new('field')
+        self.lights_collection = bpy.data.collections.new('lights')
+        
+        # Add collections to scene
+        bpy.context.scene.collection.children.link(self.field_collection)
+        bpy.context.scene.collection.children.link(self.lights_collection)
 
-        #setup environment
+        # Setup environment
         self.make_base()
+        # self.make_lights('POINT', 10, 75, 60)
+        # self.make_lights('POINT', 10, 75, 60, light_color=(1,1,1))
+        self.make_lights('SPOT', 10, 150, 60)
+        # self.make_lights('SPOT', 10, 150, 60, light_color=(1,1,1))
 
     def make_base(self):
         '''base of field'''
@@ -30,8 +41,6 @@ class BlenderEnv():
         base_mesh.uv_layers.new(name='base_uv')
         # make object from mesh
         base_obj = bpy.data.objects.new('base_obj', base_mesh)
-        # add to collection
-        bpy.context.scene.collection.children.link(self.field_collection)
         # add object to scene collection
         self.field_collection.objects.link(base_obj)
 
@@ -45,6 +54,44 @@ class BlenderEnv():
 
         # ob = bpy.data.objects['new_object']
         base_obj.data.materials.append(base_mat)
+
+    def make_lights(self, type_of_light, number_of_lights, base_power, power_variance,
+            light_color='random',color_min=0, color_max=1):
+        '''Generate randomly placed lights around the base'''
+
+        # Get size of field to generate range of positions
+        base_loc = np.array(self.field_collection.objects['base_obj'].location)
+        base_dim = np.array(self.field_collection.objects['base_obj'].dimensions)
+
+        for _ in range(number_of_lights):
+            # Create light datablock, set attributes
+            light_data = bpy.data.lights.new(name="light", type=type_of_light)
+            
+            # Set spot light properties
+            if type_of_light=='SPOT':
+                light_data.spot_blend = 0.1
+                light_data.spot_size  = 1.5
+
+            # Calculate random power value
+            light_data.energy = random() * power_variance + base_power
+            
+            # Choose light color
+            if light_color == 'random':
+                light_data.color = tuple(np.random.uniform(color_min, color_max,3))
+            else:
+                light_data.color = light_color
+            
+            # Make new light object
+            light_object = bpy.data.objects.new(name="light", object_data=light_data)
+
+            # Set random location near arena
+            x_coord = np.random.randint(-base_dim[0]/1.5,base_dim[0]/1.5)
+            y_coord = np.random.randint(-base_dim[1]/1.5,base_dim[1]/1.5)
+            z_coord = np.random.randint(3,6,size=1)
+            light_object.location = tuple(base_loc + base_dim/2 + (x_coord,y_coord,z_coord))
+
+            #add to collections
+            self.lights_collection.objects.link(light_object)
 
     def clear_env(self):
         '''Function to clean environment'''
@@ -68,6 +115,6 @@ class BlenderEnv():
             for block in block_list:
                 block_list.remove(block)
 
-blender_env = BlenderEnv()
+# blender_env = BlenderEnv()
 if __name__ == '__main__':
     blender_env = BlenderEnv()
