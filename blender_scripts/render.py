@@ -14,9 +14,39 @@ if not dir in sys.path:
     sys.path.append(dir)
 import importlib
 
+def render():
+    """
+    Runs the simulation and outputs render frames and object coordinates
+    """
+
+    scene = bpy.data.scenes['Scene']
+    camera_object = initialise_camera()
+    # TODO: Make custom robot object and insert it here instead of cube
+    # The custom robot objects should created and placed inside the scene
+    # and then their mesh names placed inside this array
+    mesh_objects = None # Create the 4 robot cubes through blender
+    batch_render(scene, camera_object, mesh_objects)
+
+def initialise_camera():
+    outpost_coordinate = (-2.19561, -1.05119, 3.34377)
+    # TODO: Figure out rotation properly and the units of rotation for camera_add()
+    camera_rotation = (41.61, -1.91622, -51)
+    bpy.ops.object.camera_add(enter_editmode=False, align='VIEW', location=outpost_coordinate, rotation=camera_rotation, scale=(1, 1, 1))
+    return bpy.data.objects['Camera']
+
 
 def batch_render(scene, camera_object, mesh_objects):
-    
+    """
+    Arguments:
+
+        scene: The scene from bpy.data.scenes
+
+        camera_object: The camera object from bpy.data.objects.camera
+
+        mesh_objects: List of robot objects that need to be randomly placed
+
+    """    
+
     """ Environment Configurations 
     camera_frames = Number of frames for each individual simulation
     num_of_simulations = Number of simulations to run
@@ -41,7 +71,9 @@ def batch_render(scene, camera_object, mesh_objects):
 
 
 def spawn_objects(scene, mesh_objects, spawn_range):
-
+    """
+    Randomly spawns the given objects in the given range
+    """
     for object in mesh_objects:
         # TODO: Ensure spawned objects do not clip the existing walls
         object.location.x = random.uniform(spawn_range[0][0], spawn_range[0][1])
@@ -55,20 +87,14 @@ def render(scene, camera_object, mesh_objects, camera_frames, file_prefix="rende
     Renders the scene and returns a list of label data
     """
 
-    """ This stores the coordinates of the robots """
+    # This stores the coordinates of the robots
     labels = []
-
-    # Hardcoded camera origin coordinates based on outpost position
-    camera_object.location.x = -0.05685
-    camera_object.location.y = -0.04262
-    camera_object.location.z = 2.782
 
     # Rendering
     # https://blender.stackexchange.com/questions/1101/blender-rendering-automation-build-script
     for i in range(0, camera_frames + 1):
         filename = 'Simulation{}-frame{}.png'.format(str(file_prefix), str(i))
         bpy.context.scene.render.filepath = os.path.join(bpy.path.abspath("//renders/"), filename)
-
 
         # Changes keyframe to allow passage of time
         scene.frame_set(i)
@@ -87,7 +113,7 @@ def render(scene, camera_object, mesh_objects, camera_frames, file_prefix="rende
             'meshes': {}
         }
 
-        """ Get the placement coordinates of each robot """
+        # Get the placement coordinates of each robot
         for object in mesh_objects:
             label_entry['meshes'][object.name] = {
                 'x': object.location.x,
@@ -101,17 +127,8 @@ def render(scene, camera_object, mesh_objects, camera_frames, file_prefix="rende
 
     
 def save_labels_to_file(labels):
+    """
+    Saves the coordinates of the robot objects to a json for each individual frame
+    """
     with open(bpy.path.abspath("//renders/labels.json"), 'w+') as f:
         json.dump(labels, f, sort_keys=True, indent=4, separators=(',', ': ')) 
-
-
-if __name__ == '__main__':
-    scene = bpy.data.scenes['Scene']
-    camera_object = bpy.data.objects['Camera']
-    # TODO: Make custom robot object and insert it here instead of cube
-    # The custom robot objects should created and placed inside the scene
-    # and then their mesh names placed inside this array
-    mesh_names = ['Cube.001', 'Cube.002', 'Cube.003', 'Cube.004']
-    mesh_objects = [bpy.data.objects[name] for name in mesh_names] 
- 
-    batch_render(scene, camera_object, mesh_objects)
