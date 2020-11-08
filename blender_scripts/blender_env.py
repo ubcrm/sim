@@ -1,5 +1,8 @@
 import bpy
 import os
+import numpy as np
+from random import random
+from math import radians, sqrt
 
 FIELD_X = 8.08 #length  
 FIELD_Y = 4.48 #width
@@ -8,6 +11,7 @@ BASE_TEXTURE_PATH = os.path.join(os.getcwd(), "assets/base_v1.png")
 WALL_WIDTH = 0.410
 WALL_HEIGHT = 0.50
 WALL_COLOR = (44/255, 44/255, 44/255, 1) # #2C2C2C hex color
+BLOCK_COLOR = (139/255, 139/255, 139/255, 1) # #8B8B8B hex color
 
 class BlenderEnv():
     # constants
@@ -15,15 +19,25 @@ class BlenderEnv():
     def __init__(self):
         self.clear_env()
         
-        #make field collection
+        # Make collections
         self.field_collection = bpy.data.collections.new('field')
+        self.lights_collection = bpy.data.collections.new('lights')
+        self.blocks_collection = bpy.data.collections.new('blocks')
+        
+        # Add collections to scene
         bpy.context.scene.collection.children.link(self.field_collection)
+        bpy.context.scene.collection.children.link(self.lights_collection)
+        bpy.context.scene.collection.children.link(self.blocks_collection)
 
-
-        #setup environment
+        # Setup environment
         self.make_base()
         self.make_wall()
+        self.make_blocks()
 
+        # self.make_lights('POINT', 10, 75, 60)
+        # self.make_lights('POINT', 10, 75, 60, light_color=(1,1,1))
+        self.make_lights('SPOT', 10, 150, 60)
+        # self.make_lights('SPOT', 10, 150, 60, light_color=(1,1,1))
 
     def make_base(self):
         '''base of field'''
@@ -38,8 +52,6 @@ class BlenderEnv():
         base_mesh.uv_layers.new(name='base_uv')
         # make object from mesh
         base_obj = bpy.data.objects.new('base_obj', base_mesh)
-        # add to collection
-        # bpy.context.scene.collection.children.link(self.field_collection)
         # add object to scene collection
         self.field_collection.objects.link(base_obj)
 
@@ -53,7 +65,6 @@ class BlenderEnv():
 
         # ob = bpy.data.objects['new_object']
         base_obj.data.materials.append(base_mat)
-
 
     def make_wall(self):
         '''base of field'''
@@ -104,16 +115,134 @@ class BlenderEnv():
         wall_mat.use_nodes = True
         bsdf = wall_mat.node_tree.nodes["Principled BSDF"]
         bsdf.inputs['Base Color'].default_value = WALL_COLOR
-        texImage = wall_mat.node_tree.nodes.new('ShaderNodeTexImage')
-        # texImage.image = bpy.data.images.load(BASE_TEXTURE_PATH)
-        # wall_mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
+        # texImage = wall_mat.node_tree.nodes.new('ShaderNodeTexImage')
 
-        # ob = bpy.data.objects['new_object']
         wall_obj.data.materials.append(wall_mat)
 
+    def make_blocks(self):
+        ''' Makes all blocks '''
+        #block name, size, location and rotation maps
+        block_sizes = {
+            'S6': {'x': 1, 'y': 0.2, 'z': 0.4,},
+            'S2': {'x': 0.8, 'y': 0.2, 'z': 0.4,},
+            'S1': {'x': 0.25, 'y': 0.25, 'z': 0.4,},
+        }
+        
+        all_blocks = {
+            'B1' : {'size': block_sizes['S6'],
+                    'location' : {'x': 0, 'y': 3.280},
+                    'rot' : 0,},
+            'B2' : {'size': block_sizes['S2'],
+                    'location' : {'x': 1.5, 'y': 2.140},
+                    'rot' : 0,},
+            'B3' : {'size': block_sizes['S6'],
+                    'location' : {'x': 1.5+0.2, 'y': 0},
+                    'rot' : radians(90),},
+            'B4' : {'size': block_sizes['S6'],
+                    'location' : {'x': 3.54, 'y': 4.48 - 0.935 - 0.2},
+                    'rot' : radians(0),},
+            'B5' : {'size': block_sizes['S1'],
+                    'location' : {'x': 4.04 - (0.25/sqrt(2)), 'y': 2.240},
+                    'rot' : radians(-45),},
+            'B6' : {'size': block_sizes['S6'],
+                    'location' : {'x': 3.54, 'y': 0.935},
+                    'rot' : 0,},
+            'B7' : {'size': block_sizes['S6'],
+                    'location' : {'x': 8.08 - 1.5 - 0.2, 'y': 4.480},
+                    'rot' : radians(-90),},
+            'B8' : {'size': block_sizes['S2'],
+                    'location' : {'x': 8.08 - 1.5 - 0.8, 'y': 2.140},
+                    'rot' : 0,},
+            'B9' : {'size': block_sizes['S6'],
+                    'location' : {'x': 8.08, 'y': 4.480 - 3.280},
+                    'rot' : radians(180),},
+            }
 
-    def add_cube(self, size, location):
+        def generate_block_mesh(size, block_id):
+            'x, y, z are length width and height of block'
+            x = size['x']
+            y = size['y']
+            z = size['z']
+            vertices = [
+            (0, 0, 0), (0, y, 0), (x, y, 0), (x, 0, 0),
+            (0, 0, z), (0, y, z), (x, y, z), (x, 0, z),]
+            edges = [
+                [0, 1], [1, 2], [2, 3], [3, 0],
+                [4, 5], [5, 6], [6, 7], [7, 4],
+                [0, 4], [1, 5], [2, 6], [3, 7]]
+            faces = [
+                (0,1,5,4), (1,2,6,5), (2,3,7,6), (3,0,4,7),
+                (0,1,2,3), (4,5,6,7),]
+            block_mesh = bpy.data.meshes.new('block_{}_mesh'.format(block_id))
+            block_mesh.from_pydata(vertices, edges, faces)
+            block_mesh.update()
+            # mesh creation
+            block_mesh.uv_layers.new(name='block_{}_uv'.format(block_id))
+            # make object from mesh
+            block_obj = bpy.data.objects.new('block_{}_obj'.format(block_id), block_mesh)
+            # add object to scene collection
+            self.blocks_collection.objects.link(block_obj)
+            return block_obj
 
+        self.blocks = {}
+        for block in all_blocks:
+            self.blocks[block] = generate_block_mesh(all_blocks[block]['size'], block)
+            self.blocks[block].delta_location[0] = all_blocks[block]['location']['x']
+            self.blocks[block].delta_location[1] = all_blocks[block]['location']['y']
+            self.blocks[block].delta_rotation_euler[2] = all_blocks[block]['rot']
+
+        
+        #create texture on plane for image
+        block_mat = bpy.data.materials.new(name="block_mat")
+        block_mat.use_nodes = True
+        bsdf = block_mat.node_tree.nodes["Principled BSDF"]
+        bsdf.inputs['Base Color'].default_value = BLOCK_COLOR
+
+        # ob = bpy.data.objects['new_object']
+        for block_id in self.blocks:
+            self.blocks[block_id].data.materials.append(block_mat)
+
+        #add vision markings here!
+        #use children relative locations for blocks
+        #ie set parent of plane to be a block, then set the delta_location and delta_rotation_euler to desired location
+
+    def make_lights(self, type_of_light, number_of_lights, base_power, power_variance,
+            light_color='random',color_min=0, color_max=1):
+        '''Generate randomly placed lights around the base'''
+
+        # Get size of field to generate range of positions
+        base_loc = np.array(self.field_collection.objects['base_obj'].location)
+        base_dim = np.array(self.field_collection.objects['base_obj'].dimensions)
+
+        for _ in range(number_of_lights):
+            # Create light datablock, set attributes
+            light_data = bpy.data.lights.new(name="light", type=type_of_light)
+            
+            # Set spot light properties
+            if type_of_light=='SPOT':
+                light_data.spot_blend = 0.1
+                light_data.spot_size  = 1.5
+
+            # Calculate random power value
+            light_data.energy = random() * power_variance + base_power
+            
+            # Choose light color
+            if light_color == 'random':
+                light_data.color = tuple(np.random.uniform(color_min, color_max,3))
+            else:
+                light_data.color = light_color
+            
+            # Make new light object
+            light_object = bpy.data.objects.new(name="light", object_data=light_data)
+
+            # Set random location near arena
+            x_coord = np.random.randint(-base_dim[0]/1.5,base_dim[0]/1.5)
+            y_coord = np.random.randint(-base_dim[1]/1.5,base_dim[1]/1.5)
+            z_coord = np.random.randint(3,6,size=1)
+            light_object.location = tuple(base_loc + base_dim/2 + (x_coord,y_coord,z_coord))
+
+            #add to collections
+            self.lights_collection.objects.link(light_object)
 
     def clear_env(self):
         '''Function to clean environment'''
