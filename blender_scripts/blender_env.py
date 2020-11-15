@@ -2,11 +2,13 @@ import bpy
 import os
 import numpy as np
 from random import random
+from random import randint
 from math import radians, sqrt
 
 FIELD_X = 8.08 #length  
 FIELD_Y = 4.48 #width
 BASE_TEXTURE_PATH = os.path.join(os.getcwd(), "assets/base_v1.png")
+MARKER_TEXTURE_PATH = os.path.join(os.getcwd(), "assets/vision_markers/")
 
 WALL_WIDTH = 0.410
 WALL_HEIGHT = 0.50
@@ -202,6 +204,66 @@ class BlenderEnv():
         for block_id in self.blocks:
             self.blocks[block_id].data.materials.append(block_mat)
 
+        def generate_marker_plane(index, marker_info):
+
+            name, attributes = marker_info
+
+            # Generate Plane mesh and add solidify modifier
+            vision_marker_size = 0.15
+            vision_marker_scale = (0.075, 0.075, 0.075,)
+
+            bpy.ops.mesh.primitive_plane_add(
+                size=vision_marker_size, enter_editmode=False, 
+                align='WORLD', 
+                location=attributes['location'], 
+                scale=vision_marker_scale, 
+                rotation=attributes['rotation'],)
+
+            bpy.data.objects['Plane'].select_set(True)
+            bpy.ops.object.modifier_add(type='SOLIDIFY')
+            bpy.context.object.modifiers["Solidify"].thickness = 0.001
+            bpy.context.object.modifiers["Solidify"].offset = 1
+
+            # Add random image as texture from image markers
+            image_filename = '00' + str(randint(1,44)).zfill(2) + '.jpg'
+            img = bpy.data.images.load(filepath=MARKER_TEXTURE_PATH + image_filename)
+            
+            mat = bpy.data.materials.get("mat-" + str(index))
+            if mat is None:
+                mat = bpy.data.materials.new(name="mat-" + str(index))
+            
+            mat.use_nodes=True
+            
+            list_of_nodes = mat.node_tree.nodes.keys()
+            if "Image Texture" in list_of_nodes:
+                old_node = mat.node_tree.nodes["Image Texture"]
+                mat.node_tree.nodes.remove(old_node)
+                
+            node_tree = bpy.data.materials["mat-" + str(index)].node_tree
+            bsdf = mat.node_tree.nodes["Principled BSDF"]
+            texture_node = node_tree.nodes.new('ShaderNodeTexImage')
+            
+            texture_node.image = img
+            
+            mat.node_tree.links.new(bsdf.inputs['Base Color'], texture_node.outputs['Color'])
+
+            # Assign name and material to object
+            for obj in bpy.context.selected_objects:
+                obj.name = name
+                if obj.data.materials:
+                    obj.data.materials[0] = mat
+                else:
+                    obj.data.materials.append(mat)
+
+        all_markers = {
+            'E1-1' : {'location': (0.5,3.480,0.2), 'rotation': (radians(-90),radians(180),0)},
+            'E1-2' : {'location': (1,3.380,0.2),   'rotation': (radians(-90),radians(180),radians(270))},
+            'E1-3' : {'location': (0.5,3.280,0.2), 'rotation': (radians(-90),radians(180),radians(-180))},
+        }
+
+        for i, marker in enumerate(all_markers.items()):
+            generate_marker_plane(i, marker)
+        
         #add vision markings here!
         #use children relative locations for blocks
         #ie set parent of plane to be a block, then set the delta_location and delta_rotation_euler to desired location
