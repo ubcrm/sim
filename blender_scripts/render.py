@@ -7,10 +7,11 @@ import sys
 Add scripts folder to Blender's Python interpreter and reload all scripts.
 http://web.purplefrog.com/~thoth/blender/python-cookbook/import-python.html
 """
-blender_path = os.path.dirname(bpy.data.filepath)
-if not blender_path in sys.path:
-    sys.path.append(blender_path)
+# blender_path = os.path.dirname(bpy.data.filepath)
+# if not blender_path in sys.path:
+#     sys.path.append(blender_path)
 
+output_path = os.path.join(os.getcwd(), 'renders')
 
 def render():
     """
@@ -30,7 +31,7 @@ def render():
     # TODO: Make custom robot object and insert it here instead of cube
     # The custom robot objects should created and placed inside the scene
     # and then their mesh names placed inside this array
-    mesh_objects = None  # Create the 4 robot cubes through blender
+    mesh_objects = []  # Create the 4 robot cubes through blender
     batch_render(scene, mesh_objects, cameras)
 
 
@@ -57,7 +58,7 @@ def batch_render(scene, mesh_objects, camera_objects):
     num_of_simulations = Number of simulations to run
     spawn_range = 3D range for the spawning of objects
     """
-    camera_frames = 10
+    camera_frames = 5
     num_of_simulations = 3
     spawn_range = [
         (0, 8),
@@ -112,7 +113,8 @@ def render_helper(scene, mesh_objects, camera_objects, camera_frames, file_prefi
         # bpy.data.scenes[0].render.views_format = 'MULTIVIEW'
         for index, camera in enumerate(camera_objects):
             filename = 'Simulation{}-frame{}-camera{}.png'.format(str(file_prefix), str(i), index)
-            bpy.context.scene.render.filepath = os.path.join(bpy.path.abspath("//renders/"), filename)
+            camera_path = os.path.join(output_path, f'camera{index + 1}')
+            bpy.context.scene.render.filepath = os.path.join(camera_path, filename)
             bpy.data.scenes['Scene'].camera = camera
             bpy.ops.render.render(write_still=True)
 
@@ -138,7 +140,7 @@ def save_labels_to_file(labels):
     """
     Saves the coordinates of the robot objects to a json for each individual frame
     """
-    with open(bpy.path.abspath("\\renders\\labels.json"), 'w+') as f:
+    with open(os.path.join(output_path, 'labels.json'), 'w+') as f:
         json.dump(labels, f, sort_keys=True, indent=4, separators=(',', ': '))
 
 
