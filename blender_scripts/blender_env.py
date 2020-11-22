@@ -173,8 +173,8 @@ class BlenderEnv():
                 [4, 5], [5, 6], [6, 7], [7, 4],
                 [0, 4], [1, 5], [2, 6], [3, 7]]
             faces = [
-                (0,1,5,4), (1,2,6,5), (2,3,7,6), (3,0,4,7),
-                (0,1,2,3), (4,5,6,7),]
+                (4,5,1,0), (5,6,2,1), (6,7,3,2), (7,4,0,3),
+                (3,2,1,0), (7,6,5,4),]
             block_mesh = bpy.data.meshes.new('block_{}_mesh'.format(block_id))
             block_mesh.from_pydata(vertices, edges, faces)
             block_mesh.update()
