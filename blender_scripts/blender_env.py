@@ -38,8 +38,8 @@ class BlenderEnv():
 
         # self.make_lights('POINT', 10, 75, 60)
         # self.make_lights('POINT', 10, 75, 60, light_color=(1,1,1))
-        self.make_lights('SPOT', 10, 150, 60)
-        # self.make_lights('SPOT', 10, 150, 60, light_color=(1,1,1))
+        # self.make_lights('SPOT', 10, 150, 60)
+        self.make_lights('SPOT', 15, 150, 60, light_color=(1,1,1))
 
     def make_base(self):
         '''base of field'''
