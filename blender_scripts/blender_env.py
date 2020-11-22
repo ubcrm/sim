@@ -204,25 +204,8 @@ class BlenderEnv():
         for block_id in self.blocks:
             self.blocks[block_id].data.materials.append(block_mat)
 
-        def generate_marker_plane(index, marker_info):
 
-            name, attributes = marker_info
-
-            # Generate Plane mesh and add solidify modifier
-            vision_marker_size = 0.15
-            vision_marker_scale = (0.075, 0.075, 0.075,)
-
-            bpy.ops.mesh.primitive_plane_add(
-                size=vision_marker_size, enter_editmode=False, 
-                align='WORLD', 
-                location=attributes['location'], 
-                scale=vision_marker_scale, 
-                rotation=attributes['rotation'],)
-
-            bpy.data.objects['Plane'].select_set(True)
-            bpy.ops.object.modifier_add(type='SOLIDIFY')
-            bpy.context.object.modifiers["Solidify"].thickness = 0.001
-            bpy.context.object.modifiers["Solidify"].offset = 1
+        def get_mat(index):
 
             # Add random image as texture from image markers
             image_filename = '00' + str(randint(1,44)).zfill(2) + '.jpg'
@@ -247,18 +230,87 @@ class BlenderEnv():
             
             mat.node_tree.links.new(bsdf.inputs['Base Color'], texture_node.outputs['Color'])
 
+            return mat
+
+        def generate_marker_plane(index, marker_info):
+
+            name, attributes = marker_info
+
+            # Generate Plane mesh and add solidify modifier
+            vision_marker_size = 0.15
+            vision_marker_scale = (0.075, 0.075, 0.075,)
+
+            bpy.ops.mesh.primitive_plane_add(
+                size=vision_marker_size, enter_editmode=False, 
+                align='WORLD', 
+                scale=vision_marker_scale,)
+
+            bpy.data.objects['Plane'].select_set(True)
+            bpy.ops.object.modifier_add(type='SOLIDIFY')
+            bpy.context.object.modifiers["Solidify"].thickness = 0.001
+            bpy.context.object.modifiers["Solidify"].offset = 1
+
             # Assign name and material to object
             for obj in bpy.context.selected_objects:
+
+                mat = get_mat(index)
+
                 obj.name = name
+                obj.parent = self.blocks['B' + name[1]]
+                obj.delta_location = attributes['location']
+                obj.delta_rotation_euler = attributes['rotation']
+
                 if obj.data.materials:
                     obj.data.materials[0] = mat
                 else:
                     obj.data.materials.append(mat)
 
         all_markers = {
-            'E1-1' : {'location': (0.5,3.480,0.2), 'rotation': (radians(-90),radians(180),0)},
-            'E1-2' : {'location': (1,3.380,0.2),   'rotation': (radians(-90),radians(180),radians(270))},
-            'E1-3' : {'location': (0.5,3.280,0.2), 'rotation': (radians(-90),radians(180),radians(-180))},
+            'E1-1' : {'location': (0.5, 0.0, 0.2), 'rotation': (radians(-90),radians(180),radians(180))},
+            'E1-2' : {'location': (1.0, 0.1, 0.2), 'rotation': (radians(-90),radians(180),radians(270))},
+            'E1-3' : {'location': (0.5, 0.2, 0.2), 'rotation': (radians(-90),radians(180),0)},
+
+            'E2-1' : {'location': (0.4, 0.0, 0.2), 'rotation': (radians(-90),radians(180),radians(180))},
+            'E2-2' : {'location': (0.8, 0.1, 0.2), 'rotation': (radians(-90),radians(180),radians(270))},
+            'E2-3' : {'location': (0.4, 0.2, 0.2), 'rotation': (radians(-90),radians(180),0)},
+            'E2-4' : {'location': (0.0, 0.1, 0.2), 'rotation': (radians(-90),radians(180),radians(90))},
+            'E2-5' : {'location': (0.4, 0.1, 0.4), 'rotation': (radians(180),radians(180),radians(180))},
+
+            'E3-1' : {'location': (0.5, 0.0, 0.2), 'rotation': (radians(-90),radians(180),radians(180))},
+            'E3-2' : {'location': (1.0, 0.1, 0.2), 'rotation': (radians(-90),radians(180),radians(270))},
+            'E3-3' : {'location': (0.5, 0.2, 0.2), 'rotation': (radians(-90),radians(180),0)},
+
+            'E4-1' : {'location': (0.5, 0.0, 0.2), 'rotation': (radians(-90),radians(180),radians(180))},
+            'E4-2' : {'location': (1.0, 0.1, 0.2), 'rotation': (radians(-90),radians(180),radians(270))},
+            'E4-3' : {'location': (0.5, 0.2, 0.2), 'rotation': (radians(-90),radians(180),0)},
+            'E4-4' : {'location': (0.0, 0.1, 0.2), 'rotation': (radians(-90),radians(180),radians(90))},
+            'E4-5' : {'location': (0.5, 0.1, 0.4), 'rotation': (radians(180),radians(180),radians(180))},
+
+            'E5-2' : {'location': (0.125, 0.25, 0.2),  'rotation': (radians(-90),radians(180),0)},
+            'E5-3' : {'location': (0.25, 0.125, 0.2),  'rotation': (radians(-90),radians(180),radians(270))},
+            'E5-4' : {'location': (0.0, 0.125, 0.2),   'rotation': (radians(-90),radians(180),radians(90))},
+            'E5-1' : {'location': (0.125, 0.0, 0.2),   'rotation': (radians(-90),radians(180),radians(180))},
+            'E5-5' : {'location': (0.125, 0.125, 0.4), 'rotation': (radians(180),radians(180),radians(180))},
+
+            'E6-1' : {'location': (0.5, 0.0, 0.2), 'rotation': (radians(-90),radians(180),radians(180))},
+            'E6-2' : {'location': (1.0, 0.1, 0.2), 'rotation': (radians(-90),radians(180),radians(270))},
+            'E6-3' : {'location': (0.5, 0.2, 0.2), 'rotation': (radians(-90),radians(180),0)},
+            'E6-4' : {'location': (0.0, 0.1, 0.2), 'rotation': (radians(-90),radians(180),radians(90))},
+            'E6-5' : {'location': (0.5, 0.1, 0.4), 'rotation': (radians(180),radians(180),radians(180))},
+
+            'E7-1' : {'location': (0.5, 0.0, 0.2), 'rotation': (radians(-90),radians(180),radians(180))},
+            'E7-2' : {'location': (1.0, 0.1, 0.2), 'rotation': (radians(-90),radians(180),radians(270))},
+            'E7-3' : {'location': (0.5, 0.2, 0.2), 'rotation': (radians(-90),radians(180),0)},
+
+            'E8-1' : {'location': (0.4, 0.0, 0.2), 'rotation': (radians(-90),radians(180),radians(180))},
+            'E8-2' : {'location': (0.8, 0.1, 0.2), 'rotation': (radians(-90),radians(180),radians(270))},
+            'E8-3' : {'location': (0.4, 0.2, 0.2), 'rotation': (radians(-90),radians(180),0)},
+            'E8-4' : {'location': (0.0, 0.1, 0.2), 'rotation': (radians(-90),radians(180),radians(90))},
+            'E8-5' : {'location': (0.4, 0.1, 0.4), 'rotation': (radians(180),radians(180),radians(180))},
+
+            'E9-1' : {'location': (0.5, 0.0, 0.2), 'rotation': (radians(-90),radians(180),radians(180))},
+            'E9-2' : {'location': (1.0, 0.1, 0.2), 'rotation': (radians(-90),radians(180),radians(270))},
+            'E9-3' : {'location': (0.5, 0.2, 0.2), 'rotation': (radians(-90),radians(180),0)},
         }
 
         for i, marker in enumerate(all_markers.items()):
