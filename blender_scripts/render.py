@@ -12,6 +12,9 @@ http://web.purplefrog.com/~thoth/blender/python-cookbook/import-python.html
 #     sys.path.append(blender_path)
 
 output_path = os.path.join(os.getcwd(), 'renders')
+if not os.path.isdir(output_path):
+    os.makedirs(output_path)
+
 
 def render():
     """
