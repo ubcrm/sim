@@ -3,19 +3,17 @@ Code for simulations in Blender
 
 ## Setup
 
-Install the following addon for VSCode. It support fast script testing and debug functinoality for Blender in VSCode.
+Install the following addon for VSCode. It supports fast script testing and debug functionality for Blender in VSCode.
 
 [Blender Development - Jacques Lucke](https://marketplace.visualstudio.com/items?itemName=JacquesLucke.blender-development)
 
 Follow the instructions for running a Blender instance, and launching the script. 
-
 
 ## Running from Command-line
 
 ```blender --background --python myscript.py```
 
 ```blender --python myscript.py```
-
 
 ## Auto complete Blender
 
@@ -62,7 +60,7 @@ Options: ```'Point'```,```'SPOT'```
 
 <i>color_min (Float between 0 and 1)</i>: For random light colors, specifies the minimum value for RGB values.
 
-<i>color_max(Float between 0 and 1)</i>: For random light colors, specifies the maximum value for the RGB values.
+<i>color_max (Float between 0 and 1)</i>: For random light colors, specifies the maximum value for the RGB values.
 
 ---
 
