@@ -10,8 +10,6 @@ blender_path = os.path.join(os.getcwd(), 'blender_scripts')
 if not blender_path in sys.path:
     sys.path.append(blender_path)
 
-print(blender_path + "\n")
-
 from render import render
 
 FIELD_X = 8.08  # length
