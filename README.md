@@ -11,9 +11,21 @@ Follow the instructions for running a Blender instance, and launching the script
 
 ## Running from Command-line
 
-```blender --background --python myscript.py```
+Open the terminal at the root level of the project directory (i.e sim\\)
 
-```blender --python myscript.py```
+To run the file and setup the environment, run
+
+```blender -P blender_scripts\blender_env.py```
+
+To setup the environment and create render frames, run 
+
+```blender -P blender_scripts\blender_env.py -- render```
+
+Optionally, if you wish to run the entire process in the background without the UI, add the ```-b``` arg (it does not speedup runtime however)
+
+```blender -b -P blender_scripts\blender_env.py -- render```
+
+[Blender CLI args Documentation](https://docs.blender.org/manual/en/latest/advanced/command_line/arguments.html)
 
 ## Auto complete Blender
 
@@ -33,6 +45,8 @@ Core steps:
         "import sys; sys.path.append('/path_to/blender_autocomplete-master/2.90')"
     ],
 ```
+---
+[Alternate auto-complete solution by installing a fake bpy module](https://youtu.be/IQgLBnPO2uo)
 
 ## Function Documentation
 
@@ -64,3 +78,10 @@ Options: ```'Point'```,```'SPOT'```
 
 ---
 
+### Render functionality
+
+---
+
+All the configurations for rendering frames, including simulation variables and render output quality are at the top of render.py in a dict called ```render_configs```, adjust as necessary.
+
+---
