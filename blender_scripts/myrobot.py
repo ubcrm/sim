@@ -90,4 +90,4 @@ class AIRobot():
 if __name__ == '__main__' or __name__ == '<run_path>':
     coll1 = bpy.data.collections.new('test_coll')
     bpy.context.scene.collection.children.link(coll1)
-    a = AIRobot('r1', coll1)    
+    a = AIRobot('r1', coll1, 'red')    
