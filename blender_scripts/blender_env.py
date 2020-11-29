@@ -1,8 +1,17 @@
+import sys
 import bpy
 import os
+
+dirname = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(dirname)
+
+from myrobot import AIRobot
+
+
 import numpy as np
-from random import random
+import random
 from math import radians, sqrt
+from math import pi as PI
 
 FIELD_X = 8.08 #length  
 FIELD_Y = 4.48 #width
@@ -23,11 +32,13 @@ class BlenderEnv():
         self.field_collection = bpy.data.collections.new('field')
         self.lights_collection = bpy.data.collections.new('lights')
         self.blocks_collection = bpy.data.collections.new('blocks')
+        self.robots_collection = bpy.data.collections.new('robots')
         
         # Add collections to scene
         bpy.context.scene.collection.children.link(self.field_collection)
         bpy.context.scene.collection.children.link(self.lights_collection)
         bpy.context.scene.collection.children.link(self.blocks_collection)
+        bpy.context.scene.collection.children.link(self.robots_collection)
 
         # Setup environment
         self.make_base()
@@ -38,6 +49,25 @@ class BlenderEnv():
         # self.make_lights('POINT', 10, 75, 60, light_color=(1,1,1))
         self.make_lights('SPOT', 10, 150, 60)
         # self.make_lights('SPOT', 10, 150, 60, light_color=(1,1,1))
+
+        self.robots = {}
+        self.robots['r1'] = AIRobot('r1', self.robots_collection, 'blue')
+        self.robots['r2'] = AIRobot('r2', self.robots_collection, 'red')
+
+        #random spawning and rotation, for demo only
+        for robot in self.robots.values():
+            robot_box = 0.2
+            x = random.uniform(robot_box, FIELD_X-robot_box)
+            y = random.uniform(robot_box, FIELD_Y-robot_box)
+            theta = random.uniform(0, 2*PI)
+            theta_yaw = random.uniform(-PI/2, PI/2)
+            theta_pitch = random.uniform(-PI/6, PI/6)
+
+            robot.base_obj.location = (x, y, 0)
+            robot.base_obj.delta_rotation_euler = (0, 0, theta)
+            robot.barrel_obj.delta_rotation_euler = (0, 0, theta_yaw)
+            robot.yaw_obj.delta_rotation_euler = (theta_pitch, 0, 0)
+
 
     def make_base(self):
         '''base of field'''
@@ -224,7 +254,7 @@ class BlenderEnv():
                 light_data.spot_size  = 1.5
 
             # Calculate random power value
-            light_data.energy = random() * power_variance + base_power
+            light_data.energy = random.random() * power_variance + base_power
             
             # Choose light color
             if light_color == 'random':
