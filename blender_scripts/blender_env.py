@@ -7,7 +7,6 @@ sys.path.append(dirname)
 
 from myrobot import AIRobot
 
-
 import numpy as np
 import sys
 from random import random
@@ -76,8 +75,8 @@ class BlenderEnv():
 
             robot.base_obj.location = (x, y, 0)
             robot.base_obj.delta_rotation_euler = (0, 0, theta)
-            robot.barrel_obj.delta_rotation_euler = (0, 0, theta_yaw)
-            robot.yaw_obj.delta_rotation_euler = (theta_pitch, 0, 0)
+            robot.barrel_obj.delta_rotation_euler = (theta_pitch, 0, 0)
+            robot.yaw_obj.delta_rotation_euler = (0, 0, theta_yaw)
 
 
     def make_base(self):
@@ -272,35 +271,30 @@ class BlenderEnv():
         def generate_marker_plane(index, marker_info):
 
             name, attributes = marker_info
+            vms = 0.15 #vision_marker_size
 
-            # Generate Plane mesh and add solidify modifier
-            vision_marker_size = 0.15
-            vision_marker_scale = (0.075, 0.075, 0.075,)
+            m = bpy.data.meshes.new('mesh_' + name)
+            d = bpy.data.objects.new('obj_' + name, m)
 
-            bpy.ops.mesh.primitive_plane_add(
-                size=vision_marker_size, enter_editmode=False,
-                align='WORLD',
-                scale=vision_marker_scale, )
+            verts = [(-vms/2, -vms/2, 0), (-vms/2, vms/2, 0), (vms/2, vms/2, 0), (vms/2, -vms/2, 0)]
+            faces = [(0, 1, 2, 3)]
+            m.from_pydata(verts, [], faces)
+            m.update(calc_edges=True)
+            m.uv_layers.new(name='marker_{}_uv'.format(name))
 
-            bpy.data.objects['Plane'].select_set(True)
-            bpy.ops.object.modifier_add(type='SOLIDIFY')
-            bpy.context.object.modifiers["Solidify"].thickness = 0.001
-            bpy.context.object.modifiers["Solidify"].offset = 1
-
-            # Assign name and material to object
-            for obj in bpy.context.selected_objects:
-
-                mat = get_mat(index)
-
-                obj.name = name
-                obj.parent = self.blocks['B' + name[1]]
-                obj.delta_location = attributes['location']
-                obj.delta_rotation_euler = attributes['rotation']
-
-                if obj.data.materials:
-                    obj.data.materials[0] = mat
-                else:
-                    obj.data.materials.append(mat)
+            self.blocks_collection.objects.link(d)
+            d.parent = self.blocks['B' + name[1]]
+            
+            mat = get_mat(index)
+            d.delta_location = attributes['location']
+            d.delta_rotation_euler = attributes['rotation']
+            if d.data.materials:
+                d.data.materials[0] = mat
+            else:
+                d.data.materials.append(mat)
+            mod = d.modifiers.new(name + '_mod', 'SOLIDIFY')
+            mod.thickness = -0.0005
+            mod.offset = 1
 
         all_markers = {
             'E1-1': {'location': (0.5, 0.0, 0.2), 'rotation': (radians(-90), radians(180), radians(180))},
