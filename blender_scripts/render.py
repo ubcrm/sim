@@ -61,7 +61,7 @@ def render():
     # TODO: Make custom robot object and insert it here instead of cube
     # The custom robot objects should created and placed inside the scene
     # and then their mesh names placed inside this array
-    mesh_objects = []  # Create the 4 robot cubes through blender
+    mesh_objects = ['r1_base', 'r2_base', 'r3_base', 'r4_base']  # Create the 4 robot cubes through blender
     batch_render(scene, mesh_objects, cameras)
     print(f'Render finished in {time.time() - start_time}!')
 

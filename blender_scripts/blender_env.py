@@ -62,8 +62,10 @@ class BlenderEnv():
 
         self.robots = {}
         self.robots['r1'] = AIRobot('r1', self.robots_collection, 'blue')
-        self.robots['r2'] = AIRobot('r2', self.robots_collection, 'red')
-
+        self.robots['r2'] = AIRobot('r2', self.robots_collection, 'blue')
+        self.robots['r3'] = AIRobot('r3', self.robots_collection, 'red')
+        self.robots['r4'] = AIRobot('r4', self.robots_collection, 'red')
+        
         #random spawning and rotation, for demo only
         for robot in self.robots.values():
             robot_box = 0.2
