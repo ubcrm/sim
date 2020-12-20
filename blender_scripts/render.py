@@ -5,8 +5,11 @@ import random
 import json
 import sys
 import time
+import math
 from mathutils.bvhtree import BVHTree
 from typing import List
+
+from pathfinder import simulate_motion, initialise_pathfinder
 
 output_path = os.path.join(os.getcwd(), 'renders')
 if not os.path.isdir(output_path):
@@ -15,24 +18,52 @@ if not os.path.isdir(output_path):
 render_flag = sys.argv[-1]
 
 render_configs = {
+    # The rotation units are in radians, the blender UI will display them in degrees
     'cameras': [
         {
             'location': (-2.19561, -1.05119, 3.34377),
             'rotation': (0.976892, 0.0568127, -0.976659)
         },
         {
-            'location': (10.1851, 5.63574, 3.34377),
+            'location': (10.2974, 5.5376, 3.31218),
             'rotation': (0.976892, 0.0568127, 2.15071)
         }
     ],
     'camera_focal_length': 23,
-    'robot_spawn_range': [
-        (0.5, 7.5),
-        (0.4, 4),
-        (0.010, 0.011)
+    'spawn_blocks': [
+        {
+            'block_name': 'A',
+            'x_range': (1.7, 2.9),
+            'y_range': (3.0, 3.8)
+        },
+        {
+            'block_name': 'B',
+            'x_range': (5.2, 5.8),
+            'y_range': (3.0, 3.8)
+        },
+        {
+            'block_name': 'C',
+            'x_range': (7.4, 7.4),
+            'y_range': (1.7, 3.5)
+        },
+        {
+            'block_name': 'D',
+            'x_range': (5.3, 6.3),
+            'y_range': (0.6, 1.5)
+        },
+        {
+            'block_name': 'E',
+            'x_range': (2.4, 2.9),
+            'y_range': (0.7, 1.5)
+        },
+        {
+            'block_name': 'F',
+            'x_range': (0.76, 0.76),
+            'y_range': (1, 2.5)
+        }
     ],
-    'num_of_simulations': 2,
-    'frames_per_simulation': 50,
+    'num_of_simulations': 6,
+    'frames_per_simulation': 240,
     'GPU_configs': {
         'device': 'GPU',
         'samples': 4,
@@ -59,12 +90,12 @@ def render():
 
     outpost_b_location = render_configs['cameras'][1]['location']
     outpost_b_rotation = render_configs['cameras'][1]['rotation']
-    cameras.append(initialise_camera(outpost_b_location, outpost_b_rotation))
+    # cameras.append(initialise_camera(outpost_b_location, outpost_b_rotation))
 
     # The custom robot objects should created and placed inside the scene
     # and then their object names placed inside this array
-    mesh_objects = ['r1_base', 'r2_base', 'r3_base', 'r4_base']
-    batch_render(scene, mesh_objects, cameras)
+    robot_names = ['r1_base', 'r2_base', 'r3_base', 'r4_base']
+    batch_render(scene, robot_names, cameras)
     print(f'Render finished in {time.time() - start_time}!')
 
 
@@ -80,7 +111,7 @@ def initialise_camera(coordinates, rotation):
     return bpy.context.object
 
 
-def batch_render(scene, mesh_objects, camera_objects):
+def batch_render(scene, robot_names, camera_objects):
     """
     Sets up the render configurations, simulation configurations and then performs
     individual rendering and label saving
@@ -89,11 +120,6 @@ def batch_render(scene, mesh_objects, camera_objects):
 
     num_of_simulations = render_configs['num_of_simulations']
     camera_frames = render_configs['frames_per_simulation']
-    spawn_range = [
-        render_configs['robot_spawn_range'][0],
-        render_configs['robot_spawn_range'][1],
-        render_configs['robot_spawn_range'][2]
-    ]
     labels = []
 
     # Cycles render engine parameters for optimal quality and performance
@@ -104,9 +130,8 @@ def batch_render(scene, mesh_objects, camera_objects):
     bpy.context.scene.cycles.max_bounces = render_configs['GPU_configs']['max_bounces']
 
     for i in range(0, num_of_simulations):
-        spawn_robots(mesh_objects, spawn_range)
-        setup_animation_paths(mesh_objects)
-        simulation_labels = render_helper(scene, mesh_objects, camera_objects, camera_frames, simulation_number=str(i))
+        spawn_robots(robot_names, render_configs['spawn_blocks'])
+        simulation_labels = render_helper(scene, robot_names, camera_objects, camera_frames, simulation_number=str(i))
         labels.append(simulation_labels)
 
     save_labels_to_file(labels)
@@ -129,32 +154,24 @@ def setup_animation_paths(mesh_objects):
                 mesh.keyframe_insert(data_path='location')
 
 
-def spawn_robots(robot_objects, spawn_range):
+def spawn_robots(robot_objects, spawn_blocks: List[dict]):
     """
-    Randomly spawns the given robots in the given range
+    Randomly spawns the given robots in the given blocks
     Helper for batch_render()
     """
-    # Prepare list of environment blocks the robots should not overlap with
-    block_list = [f'block_B{i}_obj' for i in range(1, 10)]
-    block_list.append('wall_obj')
+    random.shuffle(spawn_blocks)
     scene = bpy.data.scenes[0]
-    for robot in robot_objects:
-        never_ran = True
-        while never_ran or robot_intersects(robot, block_list):
-            # Get the object and place it
-            mesh = scene.objects[robot]
-            mesh.location.x = random.uniform(spawn_range[0][0], spawn_range[0][1])
-            mesh.location.y = random.uniform(spawn_range[1][0], spawn_range[1][1])
-            mesh.location.z = random.uniform(spawn_range[2][0], spawn_range[2][1])
-            # Update object data
-            layer = bpy.context.view_layer
-            layer.update()
-            # print(f'Tried to insert robot {robot} at {mesh.location.x}, {mesh.location.y}, {mesh.location.z}')
-            never_ran = False
-        # Once a robot has been successfully spawned, it should not intersect with newly spawned robots
-        block_list.append(robot)
+    for index, robot in enumerate(robot_objects):
+        robot_mesh = scene.objects[robot]
+        spawn_block = spawn_blocks[index]
+        robot_mesh.location.x = random.uniform(spawn_block['x_range'][0], spawn_block['x_range'][1])
+        robot_mesh.location.y = random.uniform(spawn_block['y_range'][0], spawn_block['y_range'][1])
+        robot_mesh.location.z = 0.03
 
-    print("Robots succesfully spawned")
+    layer = bpy.context.view_layer
+    layer.update()
+
+    print("Robots successfully spawned")
 
 
 def robot_intersects(robot_object: str, block_list: List[str]):
@@ -198,22 +215,21 @@ def render_helper(scene, robot_names, camera_objects, camera_frames, simulation_
     sim_no = f'simulation_number{simulation_number}'
     simulation_log = {
         sim_no: {
-            f'{robot_names[0]}': [],
-            f'{robot_names[1]}': [],
-            f'{robot_names[2]}': [],
-            f'{robot_names[3]}': []
-        }}
-    # for robot in robot_names:
-    #     simulation_log[sim_no].append({
-    #         f'robot_{robot}': []
-    #     })
-    # print(simulation_log)
+            f'{robot_names[0]}': {},
+            f'{robot_names[1]}': {},
+            f'{robot_names[2]}': {},
+            f'{robot_names[3]}': {}
+        }
+    }
+
+    pathfinder_configs, obstacle_list, other_robots_map = initialise_pathfinder(robot_names)
 
     # Rendering
     # https://blender.stackexchange.com/questions/1101/blender-rendering-automation-build-script
     for frame in range(0, camera_frames):
         # Changes keyframe to allow passage of time
         scene.frame_set(frame)
+        simulate_motion(robot_names, pathfinder_configs, obstacle_list, other_robots_map)
         for index, camera in enumerate(camera_objects):
             filename = f'Simulation{simulation_number}-frame{str(frame)}-camera{index}.png'
             camera_path = os.path.join(output_path, f'camera{index + 1}')
@@ -224,15 +240,12 @@ def render_helper(scene, robot_names, camera_objects, camera_frames, simulation_
         # Get the placement coordinates of each robot
         for index, robot in enumerate(robot_names):
             mesh = bpy.context.scene.objects[robot]
-            frame_position = {
-                "frame_no": frame,
-                "coordinates": {
-                    "x": mesh.location.x,
-                    "y": mesh.location.y,
-                    "z": mesh.location.z
-                }
+            position = {
+                "x": mesh.location.x,
+                "y": mesh.location.y,
+                "z": mesh.location.z
             }
-            simulation_log[sim_no][robot].append(frame_position)
+            simulation_log[sim_no][robot][f'frame_{frame}'] = position
 
     return simulation_log
 

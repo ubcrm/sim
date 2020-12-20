@@ -76,7 +76,7 @@ class BlenderEnv():
             theta_pitch = uniform(-PI/6, PI/6)
 
             robot.base_obj.location = (x, y, 0)
-            robot.base_obj.delta_rotation_euler = (0, 0, theta)
+            robot.base_obj.delta_rotation_euler = (0, 0, 0)
             robot.barrel_obj.delta_rotation_euler = (theta_pitch, 0, 0)
             robot.yaw_obj.delta_rotation_euler = (0, 0, theta_yaw)
 
