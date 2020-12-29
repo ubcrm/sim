@@ -62,13 +62,13 @@ render_configs = {
             'y_range': (1, 2.5)
         }
     ],
-    'num_of_simulations': 6,
-    'frames_per_simulation': 240,
+    'num_of_simulations': 1,
+    'frames_per_simulation': 250,
     'GPU_configs': {
         'device': 'GPU',
-        'samples': 4,
+        'samples': 2,
         'tile_size': 256,
-        'max_bounces': 4,
+        'max_bounces': 2,
         'adaptive_sampling': True,
         'enable_caustics': False
     }
@@ -229,12 +229,15 @@ def render_helper(scene, robot_names, camera_objects, camera_frames, simulation_
     for frame in range(0, camera_frames):
         # Changes keyframe to allow passage of time
         scene.frame_set(frame)
-        simulate_motion(robot_names, pathfinder_configs, obstacle_list, other_robots_map)
+        simulate_motion(robot_names, pathfinder_configs, obstacle_list, other_robots_map, frame)
         for index, camera in enumerate(camera_objects):
             filename = f'Simulation{simulation_number}-frame{str(frame)}-camera{index}.png'
             camera_path = os.path.join(output_path, f'camera{index + 1}')
             bpy.context.scene.render.filepath = os.path.join(camera_path, filename)
             bpy.data.scenes[0].camera = camera
+            # Temporary code to reduce testing runtime, default render resolution is 1080p
+            scene.render.resolution_x = 960
+            scene.render.resolution_y = 540
             bpy.ops.render.render(write_still=True)
 
         # Get the placement coordinates of each robot
